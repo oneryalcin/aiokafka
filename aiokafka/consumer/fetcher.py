@@ -497,11 +497,15 @@ class Fetcher:
                     self._records.clear()
 
                     subscription = self._subscriptions.subscription
+                    log.warning(f'ONER - FETCHER - Checking for subscription {subscription}')
                     if subscription is None or \
                             subscription.assignment is None:
+                        log.warning(f'ONER - FETCHER - Subscription is None {subscription} or assignment is none: {subscription.assignment}')
                         try:
+                            log.warning(f'ONER - FETCHER - will wait for assignemt')
                             waiter = self._subscriptions.wait_for_assignment()
                             await waiter
+                            log.warning(f'ONER - FETCHER - Subscription is awaited successfully')
                         except Errors.KafkaError:
                             # Critical coordination waiters will be passed
                             # to user, but fetcher can just ignore those

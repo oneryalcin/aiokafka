@@ -1146,6 +1146,7 @@ class AIOKafkaConsumer:
         self._coordinator.check_errors()
 
         with self._subscription.fetch_context():
+            log.error('ONER - AIOKafkaConsumer get_one Calling fetch_context')
             msg = await self._fetcher.next_record(partitions)
         return msg
 
@@ -1196,6 +1197,7 @@ class AIOKafkaConsumer:
 
         timeout = timeout_ms / 1000
         with self._subscription.fetch_context():
+            log.error('ONER - AIOKafkaConsumer get_many Calling fetch_context')
             records = await self._fetcher.fetched_records(
                 partitions, timeout,
                 max_records=max_records or self._max_poll_records)

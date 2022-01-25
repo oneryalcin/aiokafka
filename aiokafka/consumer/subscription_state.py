@@ -189,6 +189,7 @@ class SubscriptionState:
         Caller: Consumer.
         Affects: SubscriptionState.subscription
         """
+        log.warning('ONER - WE are in SubscriptionState (Unsubscribe)')
         # Set old subscription as inactive
         if self._subscription is not None:
             self._subscription._unsubscribe()
@@ -294,6 +295,7 @@ class SubscriptionState:
 
     @contextlib.contextmanager
     def fetch_context(self):
+        log.warning(f'ONER - Called fetch_context manager fetch_count {self._fetch_count}, last_fetch_ended: {self._last_fetch_ended}')
         self._fetch_count += 1
         yield
         self._fetch_count -= 1
@@ -303,7 +305,10 @@ class SubscriptionState:
     @property
     def fetcher_idle_time(self):
         """ How much time (in seconds) spent without consuming any records """
+        log.warning('ONER - WE are in SubscriptionState (fetcher_idle_time) ')
+        log.warning(f'ONER - (fetcher_idle_time) self._fetch_count: {self._fetch_count}, self._last_fetch_ended: {self._last_fetch_ended}')
         if self._fetch_count == 0:
+            log.warning(f'ONER - (fetcher_idle_time) RETURN VAL: {time.monotonic() - self._last_fetch_ended}')
             return time.monotonic() - self._last_fetch_ended
         else:
             return 0
