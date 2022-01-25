@@ -329,10 +329,13 @@ class GroupCoordinator(BaseCoordinator):
     async def close(self):
         """Close the coordinator, leave the current group
         and reset local generation/memberId."""
+        log.error('ONER - Called GroupCoordinator.close')
         if self._closing.done():
+            log.error('ONER- self._closing.done is None')
             return
 
         self._closing.set_result(None)
+        log.error('ONER - closing task set to closed NONE')
         # We must let the coordination task properly finish all pending work
         if not self._coordination_task.done():
             await self._coordination_task
@@ -342,6 +345,7 @@ class GroupCoordinator(BaseCoordinator):
         await self._maybe_leave_group()
 
     def maybe_leave_group(self):
+        log.error('Oner - Creating task _maybe_leave_group: function maybe_leave_group')
         task = create_task(self._maybe_leave_group())
         return task
 
@@ -552,6 +556,7 @@ class GroupCoordinator(BaseCoordinator):
 
     async def _coordination_routine(self):
         try:
+            log.warning('Creating __coordination_routine')
             await self.__coordination_routine()
         except asyncio.CancelledError:  # pragma: no cover
             raise
@@ -572,6 +577,7 @@ class GroupCoordinator(BaseCoordinator):
         assignment = None
 
         while not self._closing.done():
+            log.warning('ONER - We are in __coordination_routine while loop')
             # Check if there was a change to subscription
             if subscription is not None and not subscription.active:
                 # The subscription can change few times, so we can not rely on
@@ -586,6 +592,7 @@ class GroupCoordinator(BaseCoordinator):
                      self._closing],
                     return_when=asyncio.FIRST_COMPLETED)
                 if self._closing.done():
+                    log.error('Oner - _closing is set to Done so we are quiting the while loop ')
                     break
                 subscription = self._subscription.subscription
             assert subscription is not None and subscription.active
@@ -711,12 +718,17 @@ class GroupCoordinator(BaseCoordinator):
             self._heartbeat_task = None
 
     async def _heartbeat_routine(self):
+        log.warning('ONER - We are in heartbeat routine')
         last_ok_heartbeat = time.monotonic()
         hb_interval = self._heartbeat_interval_ms / 1000
         session_timeout = self._session_timeout_ms / 1000
         retry_backoff = self._retry_backoff_ms / 1000
         sleep_time = hb_interval
-
+        log.warning(f'ONER - last_ok_heartbeat: {last_ok_heartbeat}')
+        log.warning(f'ONER - heartbeat_interval sec: {hb_interval}')
+        log.warning(f'ONER - session_timeout: {session_timeout}')
+        log.warning(f'ONER - retry_backoff: {retry_backoff}')
+        log.warning(f'ONER - sleep_time: {sleep_time}')
         # There is no point to heartbeat after Broker stopped recognizing
         # this consumer, so we stop after resetting generation.
         while self.member_id != JoinGroupRequest[0].UNKNOWN_MEMBER_ID:
@@ -733,6 +745,7 @@ class GroupCoordinator(BaseCoordinator):
             # routine
 
             if success:
+                log.error('ONER - last ok heatbeat SUCCESS')
                 last_ok_heartbeat = time.monotonic()
                 sleep_time = max((0, hb_interval - last_ok_heartbeat + t0))
             else:
@@ -743,6 +756,7 @@ class GroupCoordinator(BaseCoordinator):
                 # the session timeout has expired without seeing a successful
                 # heartbeat, so we should probably make sure the coordinator
                 # is still healthy.
+                log.critical(f'ONER - SESSION TIME HAS EXPIRED, session time {session_time}, timeout: {session_timeout}')
                 log.error(
                     "Heartbeat session expired - marking coordinator dead")
                 self.coordinator_dead()
@@ -750,14 +764,17 @@ class GroupCoordinator(BaseCoordinator):
             # If consumer is idle (no records consumed) for too long we need
             # to leave the group
             idle_time = self._subscription.fetcher_idle_time
+            log.warning(f'ONER - CHECK IDLE TIME idle_time {idle_time}, max_poll_interval: {self._max_poll_interval}')
             if idle_time < self._max_poll_interval:
                 sleep_time = min(
                     sleep_time,
                     self._max_poll_interval - idle_time)
+                log.warning(f'ONER - We are sleeping for {sleep_time}')
             else:
+                log.critical('ONER - since idle time > max_subscription_time we are leaving group')
                 await self._maybe_leave_group()
 
-        log.debug("Stopping heartbeat task")
+        log.warning("Stopping heartbeat task")
 
     async def _do_heartbeat(self):
         version = 0 if self._client.api_version < (0, 11, 0) else 1
